@@ -1,16 +1,24 @@
+metadata:
+  friendlyName: Create Device via JSON
+  order: 1
+  customProperties:
+    testcase: "1234567"
 request:
-  headers:
-    "Content-Type": "application/json"
-  method: "POST"
-  url:
-    scheme: "http"
-    hostname: "localhost"
-    port: "8080"
-    path: "/"
-  type: "json"
-  body:
-    "a": "b"
-    "c": "d"
+  type: HTTP
+  spec:
+    method: "POST"
+    headers:
+      "Content-Type": "application/json"
+    url:
+      scheme: "http"
+      hostname: "localhost"
+      port: "8080"
+      path: "/"
+      query: {}
+    format: json
+    data:
+      "a": "b"
+      "c": "d"
 assertions:
 - field: "status"
   operator: "ge"

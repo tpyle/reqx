@@ -1,18 +1,25 @@
+metadata:
+  friendlyName: Create Device via Multipart Form
+  order: 2
+  customProperties:
+    testcase: "1234567"
 request:
-  headers:
-    "Content-Type": "multipart/form-data"
-  method: "POST"
-  url:
-    protocol: "http"
-    hostname: "localhost"
-    port: "8080"
-    path: "/"
-  type: "multipart"
-  body:
-    "a": "b"
-    "c": "d"
-    "file":
-      filename: ./file.txt
+  type: HTTP
+  spec:
+    headers:
+      "Content-Type": "multipart/form-data"
+    method: "POST"
+    url:
+      protocol: "http"
+      hostname: "localhost"
+      port: "8080"
+      path: "/"
+    format: "multipart"
+    data:
+      "a": "b"
+      "c": "d"
+      "file":
+        filename: ./file.txt
 assertions:
 - field: "status"
   operator: "ge"

@@ -1,16 +1,23 @@
+metadata:
+  friendlyName: Create Device via Form
+  order: 3
+  customProperties:
+    testcase: "1234567"
 request:
-  headers:
-    "Content-Type": "application/x-www-form-urlencoded"
-  method: "POST"
-  url:
-    scheme: "http"
-    hostname: "localhost"
-    port: "8080"
-    path: "/"
-  type: "form"
-  body:
-    "a": "b"
-    "c": "d"
+  type: HTTP
+  spec:
+    headers:
+      "Content-Type": "application/x-www-form-urlencoded"
+    method: "POST"
+    url:
+      scheme: "http"
+      hostname: "localhost"
+      port: "8080"
+      path: "/"
+    format: "form"
+    data:
+      "a": "b"
+      "c": "d"
 assertions:
 - field: "status"
   operator: "ge"
