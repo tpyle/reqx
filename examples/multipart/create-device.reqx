@@ -1,0 +1,30 @@
+request:
+  headers:
+    "Content-Type": "multipart/form-data"
+  method: "POST"
+  url:
+    protocol: "http"
+    hostname: "localhost"
+    port: "8080"
+    path: "/"
+  type: "multipart"
+  body:
+    "a": "b"
+    "c": "d"
+    "file":
+      filename: ./file.txt
+assertions:
+- field: "status"
+  operator: "ge"
+  operand: "200"
+- field: "status"
+  operator: "lt"
+  operand: "300"
+- field: headers
+  header: "Content-Type"
+  operator: "eq"
+  operand: "appliation/json; charset=utf-8"
+- field: body
+  jsonPath: "$.path"
+  operator: "eq"
+  operand: "/"

@@ -1,0 +1,28 @@
+request:
+  headers:
+    "Content-Type": "application/json"
+  method: "POST"
+  url:
+    scheme: "http"
+    hostname: "localhost"
+    port: "8080"
+    path: "/"
+  type: "json"
+  body:
+    "a": "b"
+    "c": "d"
+assertions:
+- field: "status"
+  operator: "ge"
+  operand: "200"
+- field: "status"
+  operator: "lt"
+  operand: "300"
+- field: headers
+  jsonPath: "$['Content-Type']"
+  operator: "eq"
+  operand: "appliation/json; charset=utf-8"
+- field: body
+  jsonPath: "$.headers['content-type']"
+  operator: "startsWith"
+  operand: "application/json"
