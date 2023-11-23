@@ -10,7 +10,7 @@ request:
     headers:
       "Content-Type": "application/json"
     url:
-      scheme: "http"
+      protocol: "http"
       hostname: "localhost"
       port: "8080"
       path: "/"

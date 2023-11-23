@@ -10,7 +10,7 @@ request:
       "Content-Type": "application/x-www-form-urlencoded"
     method: "POST"
     url:
-      scheme: "http"
+      protocol: "http"
       hostname: "localhost"
       port: "8080"
       path: "/"
