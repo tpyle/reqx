@@ -94,4 +94,5 @@ func (d MultipartFormData) Serialize(w io.WriteCloser, c *context.RequestContext
 			}
 		}
 	}
+	respChannel <- nil
 }

@@ -44,4 +44,5 @@ func (d FormData) Serialize(w io.WriteCloser, c *context.RequestContext, respCha
 		logrus.WithError(err).Error("Failed to serialize form data")
 		respChannel <- err
 	}
+	respChannel <- nil
 }

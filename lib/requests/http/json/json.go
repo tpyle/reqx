@@ -22,4 +22,5 @@ func (d JSONData) Serialize(w io.WriteCloser, c *context.RequestContext, respCha
 		logrus.WithError(err).Error("Failed to serialize JSON data")
 		respChannel <- fmt.Errorf("failed to serialize JSON data: %w", err)
 	}
+	respChannel <- nil
 }

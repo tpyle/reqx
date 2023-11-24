@@ -81,7 +81,7 @@ func (s HTTPRequestSpec) Send(c *context.RequestContext) error {
 	logrus.Infof("Sending request to %s", url)
 
 	pipeReader, pipeWriter := io.Pipe()
-	errChan := make(chan error)
+	errChan := make(chan error, 1)
 	contentTypeChan := make(chan string)
 
 	go s.Data.Serialize(pipeWriter, c, errChan, contentTypeChan)
@@ -91,7 +91,19 @@ func (s HTTPRequestSpec) Send(c *context.RequestContext) error {
 	if err != nil {
 		return fmt.Errorf("error creating request: %w", err)
 	}
-	req.Header.Set("Content-Type", <-contentTypeChan)
+
+	select {
+	case ct := <-contentTypeChan:
+		// Set the Content-Type header
+		req.Header.Set("Content-Type", ct)
+	case err := <-errChan:
+		// If an error occurred in the Serialize method, return it
+		return fmt.Errorf("error serializing request data: %w", err)
+	case <-time.After(c.HTTPContext.Timeout):
+		// If the Serialize method takes too long, return an error
+		return fmt.Errorf("timeout serializing request data")
+	}
+
 	resp, err := netClient.Do(req)
 	logrus.Debugf("Received response: %v", resp)
 	if err != nil {
