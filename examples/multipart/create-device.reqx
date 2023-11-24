@@ -16,9 +16,11 @@ request:
       path: "/"
     format: "multipart"
     data:
-      "a": "b"
-      "c": "d"
-      "file":
+      - name: "a"
+        value: "b"
+      - name: "c"
+        value: "d"
+      - name: "file"
         filename: ./file.txt
 assertions:
 - field: "status"
