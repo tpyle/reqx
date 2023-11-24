@@ -204,8 +204,8 @@ func main() {
 				Method: "POST",
 				Format: reqxHttp.FORM,
 				Data: form.HTTPRequestFormData{
-					"name":  "test",
-					"value": "test",
+					"name":  []string{"test", "test2"},
+					"value": []string{"test"},
 				},
 				// Format: reqxHttp.JSON,
 				// Data: json.HTTPRequestJSONData{

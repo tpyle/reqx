@@ -1,6 +1,7 @@
 package form
 
 import (
+	"encoding/json"
 	"io"
 	"net/url"
 
@@ -8,7 +9,23 @@ import (
 	"github.com/tpyle/reqx/lib/requests/context"
 )
 
-type HTTPRequestFormData map[string]string
+type StringOrArray []string
+
+func (soa *StringOrArray) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		*soa = []string{s}
+		return nil
+	}
+	var sa []string
+	if err := json.Unmarshal(b, &sa); err == nil {
+		*soa = sa
+		return nil
+	}
+	return nil
+}
+
+type HTTPRequestFormData map[string]StringOrArray
 
 func (d HTTPRequestFormData) Serialize(w io.WriteCloser, c *context.RequestContext, respChannel chan error) {
 	defer w.Close()
@@ -16,7 +33,9 @@ func (d HTTPRequestFormData) Serialize(w io.WriteCloser, c *context.RequestConte
 	logrus.Debugf("Serializing form data: %+v", d)
 	formData := url.Values{}
 	for k, v := range d {
-		formData.Set(k, v)
+		for _, v2 := range v {
+			formData.Add(k, v2)
+		}
 	}
 	_, err := w.Write([]byte(formData.Encode()))
 	if err != nil {
