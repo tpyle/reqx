@@ -25,11 +25,13 @@ func (soa *StringOrArray) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type HTTPRequestFormData map[string]StringOrArray
+type FormData map[string]StringOrArray
 
-func (d HTTPRequestFormData) Serialize(w io.WriteCloser, c *context.RequestContext, respChannel chan error) {
+func (d FormData) Serialize(w io.WriteCloser, c *context.RequestContext, respChannel chan error, contentTypeChannel chan string) {
 	defer w.Close()
 	defer close(respChannel)
+	defer close(contentTypeChannel)
+	contentTypeChannel <- "application/x-www-form-urlencoded"
 	logrus.Debugf("Serializing form data: %+v", d)
 	formData := url.Values{}
 	for k, v := range d {
@@ -42,8 +44,4 @@ func (d HTTPRequestFormData) Serialize(w io.WriteCloser, c *context.RequestConte
 		logrus.WithError(err).Error("Failed to serialize form data")
 		respChannel <- err
 	}
-}
-
-func (d HTTPRequestFormData) GetContentType() string {
-	return "application/x-www-form-urlencoded"
 }

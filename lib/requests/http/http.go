@@ -14,18 +14,19 @@ import (
 	"github.com/tpyle/reqx/lib/requests/context"
 	reqxForm "github.com/tpyle/reqx/lib/requests/http/form"
 	reqxJson "github.com/tpyle/reqx/lib/requests/http/json"
+	reqxMultipart "github.com/tpyle/reqx/lib/requests/http/multipart"
 )
 
 type HTTPRequestFormat string
 
 const (
-	JSON HTTPRequestFormat = "json"
-	FORM HTTPRequestFormat = "form"
+	JSON      HTTPRequestFormat = "json"
+	FORM      HTTPRequestFormat = "form"
+	MULTIPART HTTPRequestFormat = "multipart"
 )
 
 type HTTPRequestData interface {
-	Serialize(io.WriteCloser, *context.RequestContext, chan error)
-	GetContentType() string
+	Serialize(io.WriteCloser, *context.RequestContext, chan error, chan string)
 }
 
 type HTTPRequestURL struct {
@@ -53,9 +54,11 @@ func (s *HTTPRequestSpec) UnmarshalJSON(b []byte) error {
 
 	switch s.Format {
 	case JSON:
-		s.Data = reqxJson.HTTPRequestJSONData{}
+		s.Data = reqxJson.JSONData{}
 	case FORM:
-		s.Data = reqxForm.HTTPRequestFormData{}
+		s.Data = reqxForm.FormData{}
+	case MULTIPART:
+		s.Data = reqxMultipart.MultipartFormData{}
 	}
 
 	if err := mapstructure.Decode(m["data"], &s.Data); err != nil {
@@ -79,15 +82,16 @@ func (s HTTPRequestSpec) Send(c *context.RequestContext) error {
 
 	pipeReader, pipeWriter := io.Pipe()
 	errChan := make(chan error)
+	contentTypeChan := make(chan string)
 
-	go s.Data.Serialize(pipeWriter, c, errChan)
+	go s.Data.Serialize(pipeWriter, c, errChan, contentTypeChan)
 	logrus.Debugf("Request: %v", s)
 
 	req, err := http.NewRequest(s.Method, url, pipeReader)
 	if err != nil {
 		return fmt.Errorf("error creating request: %w", err)
 	}
-	req.Header.Set("Content-Type", s.Data.GetContentType())
+	req.Header.Set("Content-Type", <-contentTypeChan)
 	resp, err := netClient.Do(req)
 	logrus.Debugf("Received response: %v", resp)
 	if err != nil {

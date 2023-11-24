@@ -1,172 +1,15 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
-	"io"
 	"log"
-	"mime/multipart"
-	"net/http"
-	"net/textproto"
-	"net/url"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/tpyle/reqx/lib/requests"
 	"github.com/tpyle/reqx/lib/requests/context"
 	reqxHttpContext "github.com/tpyle/reqx/lib/requests/context/http"
 	reqxHttp "github.com/tpyle/reqx/lib/requests/http"
-	"github.com/tpyle/reqx/lib/requests/http/form"
+	reqxMultipart "github.com/tpyle/reqx/lib/requests/http/multipart"
 )
-
-func SendJSONRequest() {
-	netClient := &http.Client{
-		Timeout: time.Second * 10,
-	}
-	req, err := http.NewRequest("POST", "http://localhost:8080", bytes.NewBuffer([]byte(`{"name":"test"}`)))
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := netClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Response Body:", string(body))
-}
-
-func SendGraphQLRequest() {
-	netClient := &http.Client{
-		Timeout: time.Second * 10,
-	}
-	req, err := http.NewRequest("POST", "http://localhost:8080", bytes.NewBuffer([]byte(`{"query":"query { hello }"}`)))
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Set("Content-Type", "application/graphql")
-	resp, err := netClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Response Body:", string(body))
-}
-
-func SendFormRequest() {
-	netClient := &http.Client{
-		Timeout: time.Second * 10,
-	}
-	formData := url.Values{
-		"name": {"test"},
-	}
-	req, err := http.NewRequest("POST", "http://localhost:8080", strings.NewReader(formData.Encode()))
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := netClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Response Body:", string(body))
-}
-
-func GetMimeType(file *os.File) (string, error) {
-	// Only the first 512 bytes are used to sniff the content type.
-	buffer := make([]byte, 512)
-	_, err := file.Read(buffer)
-	if err != nil {
-		return "", err
-	}
-
-	// Reset the read pointer if necessary.
-	_, err = file.Seek(0, io.SeekStart)
-	if err != nil {
-		return "", err
-	}
-
-	return http.DetectContentType(buffer), nil
-}
-
-func SendMultiPartRequest() {
-	netClient := &http.Client{
-		Timeout: time.Second * 10,
-	}
-
-	pipeReader, pipeWriter := io.Pipe()
-	writer := multipart.NewWriter(pipeWriter)
-
-	go func() {
-		defer pipeWriter.Close()
-		defer writer.Close()
-
-		// Open the file
-		file, err := os.Open("./main.go")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
-
-		fileMimeType, err := GetMimeType(file)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// Create a form file
-		header := make(textproto.MIMEHeader)
-		header.Set("Content-Disposition", `form-data; name="fileField"; filename="main.go"`)
-		header.Set("Content-Type", fileMimeType)
-		part, err := writer.CreatePart(header)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Copy the file data to the form file
-		_, err = io.Copy(part, file)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Write other fields
-		_ = writer.WriteField("name", "test")
-	}()
-
-	req, err := http.NewRequest("POST", "http://localhost:8080", pipeReader)
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Response Body:", string(respBody))
-}
 
 func main() {
 	// var spec requests.RequestSpec = reqxHttp.HTTPRequestSpec{
@@ -202,11 +45,29 @@ func main() {
 					Path:     "/",
 				},
 				Method: "POST",
-				Format: reqxHttp.FORM,
-				Data: form.HTTPRequestFormData{
-					"name":  []string{"test", "test2"},
-					"value": []string{"test"},
+				Format: reqxHttp.MULTIPART,
+				Data: reqxMultipart.MultipartFormData{
+					{
+						Name:     "test",
+						Value:    "test",
+						FileName: "",
+					},
+					{
+						Name:     "test2",
+						Value:    "test2",
+						FileName: "",
+					},
+					{
+						Name:     "test3",
+						Value:    "",
+						FileName: "test3.txt",
+					},
 				},
+				// Format: reqxHttp.FORM,
+				// Data: form.FormData{
+				// 	"name":  []string{"test", "test2"},
+				// 	"value": []string{"test"},
+				// },
 				// Format: reqxHttp.JSON,
 				// Data: json.HTTPRequestJSONData{
 				// 	"test": "test",
@@ -223,6 +84,7 @@ func main() {
 		HTTPContext: reqxHttpContext.HTTPRequestContext{
 			Timeout: time.Second * 10,
 		},
+		FileLocation: "./",
 	}
 	err := reqx.Request.Spec.Send(&requestContext)
 	if err != nil {
