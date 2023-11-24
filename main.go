@@ -13,10 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/reflect/protodesc"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/dynamicpb"
+	"github.com/tpyle/reqx/lib/requests"
+	"github.com/tpyle/reqx/lib/requests/context"
+	reqxHttpContext "github.com/tpyle/reqx/lib/requests/context/http"
+	reqxHttp "github.com/tpyle/reqx/lib/requests/http"
+	"github.com/tpyle/reqx/lib/requests/http/form"
 )
 
 func SendJSONRequest() {
@@ -168,41 +169,101 @@ func SendMultiPartRequest() {
 }
 
 func main() {
-	SendJSONRequest()
-	SendGraphQLRequest()
-	SendFormRequest()
-	SendMultiPartRequest()
+	// var spec requests.RequestSpec = reqxHttp.HTTPRequestSpec{
+	// 	URL: reqxHttp.HTTPRequestURL{
+	// 		Protocol: "http",
+	// 		Hostname: "localhost",
+	// 		Port:     8080,
+	// 		Path:     "/",
+	// 	},
+	// 	Method: "POST",
+	// 	Format: reqxHttp.JSON,
+	// 	Data: json.HTTPRequestJSONData{
+	// 		"test": "test",
+	// 		"test2": map[string]interface{}{
+	// 			"test3": "test3",
+	// 		},
+	// 	},
+	// }
 
-	protoFile := `
-        syntax = "proto3";
-        package test;
-        message TestMessage {
-            string name = 1;
-        }
-    `
+	reqx := requests.ReqX{
+		Metadata: requests.Metadata{
+			FriendlyName:     "Test Request",
+			Order:            1,
+			CustomProperties: nil,
+		},
+		Request: requests.Request{
+			RequestType: requests.HTTP,
+			Spec: reqxHttp.HTTPRequestSpec{
+				URL: reqxHttp.HTTPRequestURL{
+					Protocol: "http",
+					Hostname: "localhost",
+					Port:     8080,
+					Path:     "/",
+				},
+				Method: "POST",
+				Format: reqxHttp.FORM,
+				Data: form.HTTPRequestFormData{
+					"name":  "test",
+					"value": "test",
+				},
+				// Format: reqxHttp.JSON,
+				// Data: json.HTTPRequestJSONData{
+				// 	"test": "test",
+				// 	"test2": map[string]interface{}{
+				// 		"test3": "test3",
+				// 	},
+				// },
+			},
+		},
+		Assertions: []requests.Assertion{},
+	}
 
-	// This is your JSON data
-	jsonData := `{"name":"test"}`
-
-	// Parse the proto file
-	protodesc.NewFile(protoreflect.FileDescriptor{}, nil)
-	fd, err := protodesc.FromFileDescriptorProto(protoFile)
+	requestContext := context.RequestContext{
+		HTTPContext: reqxHttpContext.HTTPRequestContext{
+			Timeout: time.Second * 10,
+		},
+	}
+	err := reqx.Request.Spec.Send(&requestContext)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Get the message descriptor for the message type
-	md := fd.Messages().ByName(protoreflect.Name("TestMessage"))
+	// SendJSONRequest()
+	// SendGraphQLRequest()
+	// SendFormRequest()
+	// SendMultiPartRequest()
 
-	// Create a new dynamic message
-	dynMsg := dynamicpb.NewMessage(md)
+	// protoFile := `
+	//     syntax = "proto3";
+	//     package test;
+	//     message TestMessage {
+	//         string name = 1;
+	//     }
+	// `
 
-	// Unmarshal the JSON data into the dynamic message
-	err = protojson.Unmarshal([]byte(jsonData), dynMsg)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // This is your JSON data
+	// jsonData := `{"name":"test"}`
 
-	// Now dynMsg is a protobuf message populated with the data from jsonData
-	log.Println(dynMsg)
+	// // Parse the proto file
+	// protodesc.NewFile(protoreflect.FileDescriptor{}, nil)
+	// fd, err := protodesc.FromFileDescriptorProto(protoFile)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// // Get the message descriptor for the message type
+	// md := fd.Messages().ByName(protoreflect.Name("TestMessage"))
+
+	// // Create a new dynamic message
+	// dynMsg := dynamicpb.NewMessage(md)
+
+	// // Unmarshal the JSON data into the dynamic message
+	// err = protojson.Unmarshal([]byte(jsonData), dynMsg)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// // Now dynMsg is a protobuf message populated with the data from jsonData
+	// log.Println(dynMsg)
 }
