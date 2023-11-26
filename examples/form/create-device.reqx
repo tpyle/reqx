@@ -18,6 +18,11 @@ request:
     data:
       "a": "b"
       "c": "d"
+    options:
+      insecure: true
+    headers:
+      "Content-Type": "application/x-www-form-urlencoded"
+      "Accept": "application/json"
 assertions:
 - field: "status"
   operator: "ge"

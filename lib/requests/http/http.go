@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -37,11 +38,18 @@ type HTTPRequestURL struct {
 	Query    map[string]string `json:"query"`
 }
 
+type HTTPRequestOptions struct {
+	Timeout       time.Duration `json:"timeout,omitempty"`
+	SkipTLSVerify bool          `json:"insecure,omitempty"`
+}
+
 type HTTPRequestSpec struct {
-	Method string            `json:"method"`
-	URL    HTTPRequestURL    `json:"url"`
-	Format HTTPRequestFormat `json:"format"`
-	Data   HTTPRequestData   `json:"data"`
+	Method  string             `json:"method"`
+	URL     HTTPRequestURL     `json:"url"`
+	Format  HTTPRequestFormat  `json:"format"`
+	Data    HTTPRequestData    `json:"data"`
+	Options HTTPRequestOptions `json:"options"`
+	Headers map[string]string  `json:"headers"`
 }
 
 func (s *HTTPRequestSpec) UnmarshalJSON(b []byte) error {
@@ -68,12 +76,20 @@ func (s *HTTPRequestSpec) UnmarshalJSON(b []byte) error {
 }
 
 func (s HTTPRequestSpec) Send(c *context.RequestContext) error {
+	resolvedTimeout := c.HTTPContext.Timeout
+	if s.Options.Timeout != 0 {
+		resolvedTimeout = s.Options.Timeout
+	}
+	if resolvedTimeout == 0 {
+		// Default to 60 seconds
+		resolvedTimeout = time.Second * 60
+	}
 	netClient := http.Client{
-		Timeout: c.HTTPContext.Timeout,
+		Timeout: resolvedTimeout,
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: c.HTTPContext.SkipTLSVerify,
+				InsecureSkipVerify: c.HTTPContext.SkipTLSVerify || s.Options.SkipTLSVerify,
 			},
 		},
 	}
@@ -104,6 +120,13 @@ func (s HTTPRequestSpec) Send(c *context.RequestContext) error {
 		return fmt.Errorf("timeout serializing request data")
 	}
 
+	for k, v := range s.Headers {
+		if strings.ToLower(k) == "content-type" && s.Format == MULTIPART {
+			// Skip setting the Content-Type header if we're sending multipart data, as it needs to be set by the Serialize method
+			continue
+		}
+		req.Header.Set(k, v)
+	}
 	resp, err := netClient.Do(req)
 	logrus.Debugf("Received response: %v", resp)
 	if err != nil {
