@@ -93,7 +93,13 @@ func (s HTTPRequestSpec) Send(c *context.RequestContext) error {
 			},
 		},
 	}
-	url := fmt.Sprintf("%s://%s:%d%s", s.URL.Protocol, s.URL.Hostname, s.URL.Port, s.URL.Path)
+
+	var url string
+	if s.URL.Port == 0 {
+		url = fmt.Sprintf("%s://%s%s", s.URL.Protocol, s.URL.Hostname, s.URL.Path)
+	} else {
+		url = fmt.Sprintf("%s://%s:%d%s", s.URL.Protocol, s.URL.Hostname, s.URL.Port, s.URL.Path)
+	}
 	logrus.Infof("Sending request to %s", url)
 
 	pipeReader, pipeWriter := io.Pipe()
