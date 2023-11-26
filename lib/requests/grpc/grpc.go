@@ -2,16 +2,17 @@ package grpc
 
 import (
 	ctx "context"
+	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/sirupsen/logrus"
 	"github.com/tpyle/reqx/lib/requests/context"
 	"google.golang.org/grpc"
+
+	grpcUtils "github.com/tpyle/reqx/lib/util/grpc"
 )
 
 type GRPCServer struct {
@@ -30,50 +31,28 @@ type GRPCProtoInformation struct {
 }
 
 type GRPCRequestSpec struct {
-	Server           GRPCServer             `json:"server"`
-	ProtoInformation GRPCProtoInformation   `json:"proto"`
-	Service          string                 `json:"service"`
-	Method           string                 `json:"method"`
-	Data             map[string]interface{} `json:"data"`
-	Options          GRPCOptions            `json:"options"`
-}
-
-func loadProto(fileName string, includePaths []string) (*desc.FileDescriptor, error) {
-	parser := protoparse.Parser{}
-	parser.ImportPaths = includePaths
-
-	descs, err := parser.ParseFiles(fileName)
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing proto file: %w", err)
-	}
-	return descs[0], nil
+	Server           GRPCServer           `json:"server"`
+	ProtoInformation GRPCProtoInformation `json:"proto"`
+	Service          string               `json:"service"`
+	Method           string               `json:"method"`
+	Data             json.RawMessage      `json:"data"`
+	Options          GRPCOptions          `json:"options"`
 }
 
 func (s GRPCRequestSpec) Send(c *context.RequestContext) error {
-	descriptor, err := loadProto(s.ProtoInformation.ProtoFile, s.ProtoInformation.IncludedDirectories)
+	descriptor, err := grpcUtils.LoadProto(s.ProtoInformation.ProtoFile, s.ProtoInformation.IncludedDirectories)
 	if err != nil {
 		return err
 	}
 
-	service := descriptor.FindService(s.Service)
-	if service == nil {
-		return fmt.Errorf("Service %s not found in proto file", s.Service)
-	}
-
-	method := service.FindMethodByName(s.Method)
-	if method == nil {
-		return fmt.Errorf("Method %s not found in service %s", s.Method, s.Service)
+	method, err := grpcUtils.ResolveMethod(descriptor, s.Service, s.Method)
+	if err != nil {
+		return err
 	}
 
 	inputType := method.GetInputType()
-
 	inputMessage := dynamic.NewMessage(inputType)
-
-	for k, v := range s.Data {
-		if err := inputMessage.TrySetFieldByName(k, v); err != nil {
-			return fmt.Errorf("Error setting field %s: %w", k, err)
-		}
-	}
+	inputMessage.UnmarshalJSON(s.Data)
 
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", s.Server.Hostname, s.Server.Port), grpc.WithInsecure())
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jhump/protoreflect/desc/protoparse"
+	"github.com/jhump/protoreflect/dynamic"
 	"github.com/tpyle/reqx/lib/requests"
 	"github.com/tpyle/reqx/lib/requests/context"
 	reqxHttpContext "github.com/tpyle/reqx/lib/requests/context/http"
@@ -26,6 +27,20 @@ func test() {
 				log.Println(method.GetFullyQualifiedName())
 				log.Println(method.GetInputType().GetFullyQualifiedName())
 				log.Println(method.GetOutputType().GetFullyQualifiedName())
+				if method.GetName() == "getById" {
+					log.Println("Found it!")
+					message := method.GetInputType()
+					log.Printf("Message: %v", message)
+					messageInstance := dynamic.NewMessage(message)
+					log.Printf("Message Instance: %v", messageInstance)
+					messageInstance.UnmarshalJSON([]byte(`{"id": 1}`))
+					log.Printf("Message Instance: %v", messageInstance)
+					jsonContent, err := messageInstance.MarshalJSON()
+					if err != nil {
+						log.Fatal(err)
+					}
+					log.Printf("JSON Content: %s", jsonContent)
+				}
 			}
 		}
 	}
@@ -51,7 +66,7 @@ func main() {
 	// 	},
 	// }
 
-	var id uint32 = 1
+	// var id uint32 = 1
 	reqx := requests.ReqX{
 		Metadata: requests.Metadata{
 			FriendlyName:     "Test Request",
@@ -71,9 +86,7 @@ func main() {
 				},
 				Service: "zebra.site.SiteService",
 				Method:  "getById",
-				Data: map[string]interface{}{
-					"id": id,
-				},
+				Data:    []byte(`{"id": 1}`),
 			},
 		},
 		Assertions: []requests.Assertion{},
