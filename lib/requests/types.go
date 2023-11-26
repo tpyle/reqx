@@ -6,6 +6,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/tpyle/reqx/lib/requests/context"
+	"github.com/tpyle/reqx/lib/requests/grpc"
 	"github.com/tpyle/reqx/lib/requests/http"
 )
 
@@ -13,6 +14,7 @@ type RequestType string
 
 const (
 	HTTP RequestType = "http"
+	GRPC RequestType = "grpc"
 )
 
 type RequestSpec interface {
@@ -36,6 +38,8 @@ func (r *Request) UnmarshalJSON(b []byte) error {
 	switch r.RequestType {
 	case HTTP:
 		req = http.HTTPRequestSpec{}
+	case GRPC:
+		req = grpc.GRPCRequestSpec{}
 	}
 	r.Spec = req
 

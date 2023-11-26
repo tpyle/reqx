@@ -4,14 +4,36 @@ import (
 	"log"
 	"time"
 
+	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/tpyle/reqx/lib/requests"
 	"github.com/tpyle/reqx/lib/requests/context"
 	reqxHttpContext "github.com/tpyle/reqx/lib/requests/context/http"
-	reqxHttp "github.com/tpyle/reqx/lib/requests/http"
-	reqxMultipart "github.com/tpyle/reqx/lib/requests/http/multipart"
+	"github.com/tpyle/reqx/lib/requests/grpc"
 )
 
+func test() {
+	parser := protoparse.Parser{
+		ImportPaths: []string{"./trifecta-schemas/site"},
+	}
+	fds, err := parser.ParseFiles("./site_service.proto")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, fd := range fds {
+		for _, service := range fd.GetServices() {
+			log.Println(service.GetName())
+			for _, method := range service.GetMethods() {
+				log.Println(method.GetFullyQualifiedName())
+				log.Println(method.GetInputType().GetFullyQualifiedName())
+				log.Println(method.GetOutputType().GetFullyQualifiedName())
+			}
+		}
+	}
+}
+
 func main() {
+	// test()
+	// return
 	// var spec requests.RequestSpec = reqxHttp.HTTPRequestSpec{
 	// 	URL: reqxHttp.HTTPRequestURL{
 	// 		Protocol: "http",
@@ -29,6 +51,7 @@ func main() {
 	// 	},
 	// }
 
+	var id uint32 = 1
 	reqx := requests.ReqX{
 		Metadata: requests.Metadata{
 			FriendlyName:     "Test Request",
@@ -36,49 +59,82 @@ func main() {
 			CustomProperties: nil,
 		},
 		Request: requests.Request{
-			RequestType: requests.HTTP,
-			Spec: reqxHttp.HTTPRequestSpec{
-				URL: reqxHttp.HTTPRequestURL{
-					Protocol: "http",
+			RequestType: requests.GRPC,
+			Spec: grpc.GRPCRequestSpec{
+				Server: grpc.GRPCServer{
 					Hostname: "localhost",
-					Port:     8080,
-					Path:     "/",
+					Port:     10000,
 				},
-				Method: "POST",
-				Format: reqxHttp.MULTIPART,
-				Data: reqxMultipart.MultipartFormData{
-					{
-						Name:     "test",
-						Value:    "test",
-						FileName: "",
-					},
-					{
-						Name:     "test2",
-						Value:    "test2",
-						FileName: "",
-					},
-					{
-						Name:     "test3",
-						Value:    "",
-						FileName: "test3.txt",
-					},
+				ProtoInformation: grpc.GRPCProtoInformation{
+					ProtoFile:           "site_service.proto",
+					IncludedDirectories: []string{"./trifecta-schemas/site"},
 				},
-				// Format: reqxHttp.FORM,
-				// Data: form.FormData{
-				// 	"name":  []string{"test", "test2"},
-				// 	"value": []string{"test"},
-				// },
-				// Format: reqxHttp.JSON,
-				// Data: json.HTTPRequestJSONData{
-				// 	"test": "test",
-				// 	"test2": map[string]interface{}{
-				// 		"test3": "test3",
-				// 	},
-				// },
+				Service: "zebra.site.SiteService",
+				Method:  "getById",
+				Data: map[string]interface{}{
+					"id": id,
+				},
 			},
 		},
 		Assertions: []requests.Assertion{},
 	}
+
+	// reqx := requests.ReqX{
+	// 	Metadata: requests.Metadata{
+	// 		FriendlyName:     "Test Request",
+	// 		Order:            1,
+	// 		CustomProperties: nil,
+	// 	},
+	// 	Request: requests.Request{
+	// 		RequestType: requests.HTTP,
+	// 		Spec: reqxHttp.HTTPRequestSpec{
+	// 			URL: reqxHttp.HTTPRequestURL{
+	// 				Protocol: "https",
+	// 				Hostname: "localhost",
+	// 				Port:     8443,
+	// 				Path:     "/",
+	// 			},
+	// 			Method: "POST",
+	// 			Format: reqxHttp.MULTIPART,
+	// 			Data: reqxMultipart.MultipartFormData{
+	// 				{
+	// 					Name:     "test",
+	// 					Value:    "test",
+	// 					FileName: "",
+	// 				},
+	// 				{
+	// 					Name:     "test2",
+	// 					Value:    "test2",
+	// 					FileName: "",
+	// 				},
+	// 				{
+	// 					Name:     "test3",
+	// 					Value:    "",
+	// 					FileName: "test3.txt",
+	// 				},
+	// 			},
+	// 			Headers: map[string]string{
+	// 				"test": "test",
+	// 			},
+	// 			Options: reqxHttp.HTTPRequestOptions{
+	// 				SkipTLSVerify: false,
+	// 			},
+	// 			// Format: reqxHttp.FORM,
+	// 			// Data: form.FormData{
+	// 			// 	"name":  []string{"test", "test2"},
+	// 			// 	"value": []string{"test"},
+	// 			// },
+	// 			// Format: reqxHttp.JSON,
+	// 			// Data: json.HTTPRequestJSONData{
+	// 			// 	"test": "test",
+	// 			// 	"test2": map[string]interface{}{
+	// 			// 		"test3": "test3",
+	// 			// 	},
+	// 			// },
+	// 		},
+	// 	},
+	// 	Assertions: []requests.Assertion{},
+	// }
 
 	requestContext := context.RequestContext{
 		HTTPContext: reqxHttpContext.HTTPRequestContext{
