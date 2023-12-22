@@ -6,8 +6,6 @@ metadata:
 request:
   type: HTTP
   spec:
-    headers:
-      "Content-Type": "application/x-www-form-urlencoded"
     method: "POST"
     url:
       protocol: "http"
@@ -21,7 +19,7 @@ request:
     options:
       insecure: true
     headers:
-      "Content-Type": "application/x-www-form-urlencoded"
+      "Content-Type": "applicati`on/x-www-form-urlencoded"
       "Accept": "application/json"
 assertions:
 - field: "status"

@@ -6,6 +6,7 @@ import (
 
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
+	"github.com/sirupsen/logrus"
 	"github.com/tpyle/reqx/lib/requests"
 	"github.com/tpyle/reqx/lib/requests/context"
 	reqxHttpContext "github.com/tpyle/reqx/lib/requests/context/http"
@@ -67,6 +68,27 @@ func main() {
 	// }
 
 	// var id uint32 = 1
+	files := []string{
+		"./examples/form/create-device.reqx",
+		"./examples/grpc/create-device.reqx",
+		"./examples/json/create-device.reqx",
+		"./examples/multipart/create-device.reqx",
+	}
+	for _, file := range files {
+		req, err := requests.LoadFromFile(file)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logrus.Infof("Request: %+v", req)
+	}
+	// filename := "./examples/form/create-device.reqx"
+	// req, err := requests.LoadFromFile(filename)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// logrus.Infof("Request: %+v", req)
+	return
+
 	reqx := requests.ReqX{
 		Metadata: requests.Metadata{
 			FriendlyName:     "Test Request",

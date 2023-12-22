@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 
 	"github.com/tpyle/reqx/lib/requests/context"
@@ -43,36 +42,58 @@ type HTTPRequestOptions struct {
 	SkipTLSVerify bool          `json:"insecure,omitempty"`
 }
 
-type HTTPRequestSpec struct {
+type HTTPRequestLoadSpec struct {
 	Method  string             `json:"method"`
 	URL     HTTPRequestURL     `json:"url"`
 	Format  HTTPRequestFormat  `json:"format"`
-	Data    HTTPRequestData    `json:"data"`
 	Options HTTPRequestOptions `json:"options"`
 	Headers map[string]string  `json:"headers"`
 }
 
+type HTTPRequestSpec struct {
+	HTTPRequestLoadSpec
+	Data HTTPRequestData `json:"data"`
+}
+
 func (s *HTTPRequestSpec) UnmarshalJSON(b []byte) error {
-	var m map[string]interface{}
-	if err := json.Unmarshal(b, &m); err != nil {
-		panic(err)
+	var temp struct {
+		HTTPRequestLoadSpec
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(b, &temp); err != nil {
+		return fmt.Errorf("Unable to unmarshal HTTP request: %w", err)
 	}
 
-	s.Format = HTTPRequestFormat(m["format"].(string))
+	s.Method = temp.Method
+	s.URL = temp.URL
+	s.Format = temp.Format
+	s.Options = temp.Options
+	s.Headers = temp.Headers
 
 	switch s.Format {
 	case JSON:
-		s.Data = reqxJson.JSONData{}
+		var data reqxJson.JSONData
+		if err := json.Unmarshal(temp.Data, &data); err != nil {
+			return fmt.Errorf("error decoding JSON data: %w", err)
+		}
+		s.Data = data
 	case FORM:
-		s.Data = reqxForm.FormData{}
+		var data reqxForm.FormData
+		if err := json.Unmarshal(temp.Data, &data); err != nil {
+			return fmt.Errorf("error decoding FORM data: %w", err)
+		}
+		s.Data = data
 	case MULTIPART:
-		s.Data = reqxMultipart.MultipartFormData{}
-	}
-
-	if err := mapstructure.Decode(m["data"], &s.Data); err != nil {
-		panic(err)
+		var data reqxMultipart.MultipartFormData
+		if err := json.Unmarshal(temp.Data, &data); err != nil {
+			return fmt.Errorf("error decoding MULTIPART data: %w", err)
+		}
+		s.Data = data
+	default:
+		return fmt.Errorf("Unknown request format: %s", s.Format)
 	}
 	return nil
+
 }
 
 func (s HTTPRequestSpec) Send(c *context.RequestContext) error {

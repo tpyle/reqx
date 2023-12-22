@@ -2,8 +2,10 @@ package requests
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 
-	"github.com/mitchellh/mapstructure"
+	"sigs.k8s.io/yaml"
 
 	"github.com/tpyle/reqx/lib/requests/context"
 	"github.com/tpyle/reqx/lib/requests/grpc"
@@ -13,8 +15,8 @@ import (
 type RequestType string
 
 const (
-	HTTP RequestType = "http"
-	GRPC RequestType = "grpc"
+	HTTP RequestType = "HTTP"
+	GRPC RequestType = "GRPC"
 )
 
 type RequestSpec interface {
@@ -27,25 +29,33 @@ type Request struct {
 }
 
 func (r *Request) UnmarshalJSON(b []byte) error {
-	var m map[string]interface{}
-	if err := json.Unmarshal(b, &m); err != nil {
-		panic(err)
+	var temp struct {
+		RequestType RequestType     `json:"type"`
+		Spec        json.RawMessage `json:"spec"`
+	}
+	if err := json.Unmarshal(b, &temp); err != nil {
+		return fmt.Errorf("Unable to unmarshal request: %w", err)
 	}
 
-	r.RequestType = RequestType(m["type"].(string))
+	r.RequestType = temp.RequestType
 
-	var req RequestSpec = nil
 	switch r.RequestType {
 	case HTTP:
-		req = http.HTTPRequestSpec{}
+		var req http.HTTPRequestSpec
+		if err := json.Unmarshal(temp.Spec, &req); err != nil {
+			return fmt.Errorf("Unable to unmarshal HTTP request: %w", err)
+		}
+		r.Spec = req
 	case GRPC:
-		req = grpc.GRPCRequestSpec{}
+		var req grpc.GRPCRequestSpec
+		if err := json.Unmarshal(temp.Spec, &req); err != nil {
+			return fmt.Errorf("Unable to unmarshal GRPC request: %w", err)
+		}
+		r.Spec = req
+	default:
+		return fmt.Errorf("Unknown request type: %s", r.RequestType)
 	}
-	r.Spec = req
 
-	if err := mapstructure.Decode(m["spec"], &r.Spec); err != nil {
-		panic(err)
-	}
 	return nil
 }
 
@@ -66,4 +76,17 @@ type ReqX struct {
 	Metadata   Metadata    `json:"metadata"`
 	Request    Request     `json:"request"`
 	Assertions []Assertion `json:"assertions"`
+}
+
+func LoadFromFile(filename string) (*ReqX, error) {
+	body, err := os.ReadFile(filename)
+
+	var reqx ReqX
+	if err != nil {
+		return nil, err
+	}
+	if err := yaml.Unmarshal(body, &reqx); err != nil {
+		return nil, err
+	}
+	return &reqx, nil
 }
