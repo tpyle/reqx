@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"path"
 	"time"
 
 	"github.com/jhump/protoreflect/desc/protoparse"
@@ -75,11 +76,18 @@ func main() {
 		"./examples/multipart/create-device.reqx",
 	}
 	for _, file := range files {
+		directory := path.Dir(file)
 		req, err := requests.LoadFromFile(file)
 		if err != nil {
 			log.Fatal(err)
 		}
 		logrus.Infof("Request: %+v", req)
+		err = req.Request.Spec.Send(&context.RequestContext{
+			HTTPContext: reqxHttpContext.HTTPRequestContext{
+				Timeout: time.Second * 10,
+			},
+			FileLocation: directory,
+		})
 	}
 	// filename := "./examples/form/create-device.reqx"
 	// req, err := requests.LoadFromFile(filename)
