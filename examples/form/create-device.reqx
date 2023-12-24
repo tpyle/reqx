@@ -19,7 +19,7 @@ request:
     options:
       insecure: true
     headers:
-      "Content-Type": "applicati`on/x-www-form-urlencoded"
+      "Content-Type": "application/x-www-form-urlencoded"
       "Accept": "application/json"
 assertions:
 - field: "status"
