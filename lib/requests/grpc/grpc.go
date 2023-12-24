@@ -40,6 +40,7 @@ type GRPCRequestSpec struct {
 }
 
 func (s GRPCRequestSpec) Send(c *context.RequestContext) error {
+	logrus.Infof("Sending GRPC request: %+v", s)
 	descriptor, err := grpcUtils.LoadProto(s.ProtoInformation.ProtoFile, s.ProtoInformation.IncludedDirectories)
 	if err != nil {
 		return err

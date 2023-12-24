@@ -15,6 +15,7 @@ import (
 	reqxForm "github.com/tpyle/reqx/lib/requests/http/form"
 	reqxJson "github.com/tpyle/reqx/lib/requests/http/json"
 	reqxMultipart "github.com/tpyle/reqx/lib/requests/http/multipart"
+	"github.com/tpyle/reqx/lib/requests/http/raw"
 )
 
 type HTTPRequestFormat string
@@ -23,6 +24,7 @@ const (
 	JSON      HTTPRequestFormat = "json"
 	FORM      HTTPRequestFormat = "form"
 	MULTIPART HTTPRequestFormat = "multipart"
+	RAW       HTTPRequestFormat = "raw"
 )
 
 type HTTPRequestData interface {
@@ -85,9 +87,18 @@ func (s *HTTPRequestSpec) UnmarshalJSON(b []byte) error {
 		s.Data = data
 	case MULTIPART:
 		var data reqxMultipart.MultipartFormData
+
 		if err := json.Unmarshal(temp.Data, &data); err != nil {
 			return fmt.Errorf("error decoding MULTIPART data: %w", err)
 		}
+		s.Data = data
+	case RAW:
+		var data raw.RawData
+		var unescaped string
+		if err := json.Unmarshal(temp.Data, &unescaped); err != nil {
+			return fmt.Errorf("error decoding RAW data: %w", err)
+		}
+		data = []byte(unescaped)
 		s.Data = data
 	default:
 		return fmt.Errorf("Unknown request format: %s", s.Format)

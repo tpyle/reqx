@@ -70,6 +70,7 @@ func main() {
 
 	// var id uint32 = 1
 	files := []string{
+		"./examples/raw/create-device.reqx",
 		"./examples/form/create-device.reqx",
 		"./examples/grpc/create-device.reqx",
 		"./examples/json/create-device.reqx",
@@ -79,7 +80,8 @@ func main() {
 		directory := path.Dir(file)
 		req, err := requests.LoadFromFile(file)
 		if err != nil {
-			log.Fatal(err)
+			logrus.WithError(err).Error("Error loading request")
+			continue
 		}
 		logrus.Infof("Request: %+v", req)
 		err = req.Request.Spec.Send(&context.RequestContext{
@@ -88,6 +90,9 @@ func main() {
 			},
 			FileLocation: directory,
 		})
+		if err != nil {
+			logrus.WithError(err).Error("Error sending request")
+		}
 	}
 	// filename := "./examples/form/create-device.reqx"
 	// req, err := requests.LoadFromFile(filename)

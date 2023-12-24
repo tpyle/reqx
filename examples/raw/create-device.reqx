@@ -1,0 +1,37 @@
+metadata:
+  friendlyName: Create Device via Raw
+  order: 1
+  customProperties:
+    testcase: "1234567"
+request:
+  type: HTTP
+  spec:
+    method: "POST"
+    headers:
+      "Content-Type": "application/json"
+    url:
+      protocol: "http"
+      hostname: "localhost"
+      port: 8080
+      path: "/"
+      query: {}
+    format: raw
+    data: |
+     {
+      "hello": "world"
+     }
+assertions:
+- field: "status"
+  operator: "ge"
+  operand: "200"
+- field: "status"
+  operator: "lt"
+  operand: "300"
+- field: headers
+  jsonPath: "$['Content-Type']"
+  operator: "eq"
+  operand: "appliation/json; charset=utf-8"
+- field: body
+  jsonPath: "$.headers['content-type']"
+  operator: "startsWith"
+  operand: "application/json"
