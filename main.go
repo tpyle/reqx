@@ -1,17 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"crypto/rand"
+	"fmt"
 	"log"
-	"path"
-	"time"
+	"math/big"
+	"text/template"
 
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
-	"github.com/sirupsen/logrus"
-	"github.com/tpyle/reqx/lib/requests"
-	"github.com/tpyle/reqx/lib/requests/context"
-	reqxHttpContext "github.com/tpyle/reqx/lib/requests/context/http"
-	"github.com/tpyle/reqx/lib/requests/grpc"
 )
 
 func test() {
@@ -49,6 +47,34 @@ func test() {
 }
 
 func main() {
+
+	for i := 0; i < 10; i++ {
+		n, err := rand.Int(rand.Reader, big.NewInt(1<<32))
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%d\n", int32(n.Int64()-(1<<31)))
+	}
+	return
+
+	templateString := "Hello {{.Name}}!"
+	data := struct {
+		Name string
+	}{
+		Name: "World",
+	}
+	tmp, err := template.New("test").Parse(templateString)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w := &bytes.Buffer{}
+	err = tmp.Execute(w, data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Rendered: %s", w)
+	return
+
 	// test()
 	// return
 	// var spec requests.RequestSpec = reqxHttp.HTTPRequestSpec{
@@ -69,63 +95,63 @@ func main() {
 	// }
 
 	// var id uint32 = 1
-	files := []string{
-		"./examples/raw/create-device.reqx",
-		"./examples/form/create-device.reqx",
-		"./examples/grpc/create-device.reqx",
-		"./examples/json/create-device.reqx",
-		"./examples/multipart/create-device.reqx",
-	}
-	for _, file := range files {
-		directory := path.Dir(file)
-		req, err := requests.LoadFromFile(file)
-		if err != nil {
-			logrus.WithError(err).Error("Error loading request")
-			continue
-		}
-		logrus.Infof("Request: %+v", req)
-		err = req.Request.Spec.Send(&context.RequestContext{
-			HTTPContext: reqxHttpContext.HTTPRequestContext{
-				Timeout: time.Second * 10,
-			},
-			FileLocation: directory,
-		})
-		if err != nil {
-			logrus.WithError(err).Error("Error sending request")
-		}
-	}
+	// files := []string{
+	// 	"./examples/raw/create-device.reqx",
+	// 	"./examples/form/create-device.reqx",
+	// 	"./examples/grpc/create-device.reqx",
+	// 	"./examples/json/create-device.reqx",
+	// 	"./examples/multipart/create-device.reqx",
+	// }
+	// for _, file := range files {
+	// 	directory := path.Dir(file)
+	// 	req, err := requests.LoadFromFile(file)
+	// 	if err != nil {
+	// 		logrus.WithError(err).Error("Error loading request")
+	// 		continue
+	// 	}
+	// 	logrus.Infof("Request: %+v", req)
+	// 	err = req.Request.Spec.Send(&reqxContext.RequestContext{
+	// 		HTTPContext: reqxHttpContext.HTTPRequestContext{
+	// 			Timeout: time.Second * 10,
+	// 		},
+	// 		FileLocation: directory,
+	// 	})
+	// 	if err != nil {
+	// 		logrus.WithError(err).Error("Error sending request")
+	// 	}
+	// }
 	// filename := "./examples/form/create-device.reqx"
 	// req, err := requests.LoadFromFile(filename)
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
 	// logrus.Infof("Request: %+v", req)
-	return
+	// return
 
-	reqx := requests.ReqX{
-		Metadata: requests.Metadata{
-			FriendlyName:     "Test Request",
-			Order:            1,
-			CustomProperties: nil,
-		},
-		Request: requests.Request{
-			RequestType: requests.GRPC,
-			Spec: grpc.GRPCRequestSpec{
-				Server: grpc.GRPCServer{
-					Hostname: "localhost",
-					Port:     10000,
-				},
-				ProtoInformation: grpc.GRPCProtoInformation{
-					ProtoFile:           "site_service.proto",
-					IncludedDirectories: []string{"./trifecta-schemas/site"},
-				},
-				Service: "zebra.site.SiteService",
-				Method:  "getById",
-				Data:    []byte(`{"id": 1}`),
-			},
-		},
-		Assertions: []requests.Assertion{},
-	}
+	// reqx := requests.ReqX{
+	// 	Metadata: requests.Metadata{
+	// 		FriendlyName:     "Test Request",
+	// 		Order:            1,
+	// 		CustomProperties: nil,
+	// 	},
+	// 	Request: requests.Request{
+	// 		RequestType: requests.GRPC,
+	// 		Spec: grpc.GRPCRequestSpec{
+	// 			Server: grpc.GRPCServer{
+	// 				Hostname: "localhost",
+	// 				Port:     10000,
+	// 			},
+	// 			ProtoInformation: grpc.GRPCProtoInformation{
+	// 				ProtoFile:           "site_service.proto",
+	// 				IncludedDirectories: []string{"./trifecta-schemas/site"},
+	// 			},
+	// 			Service: "zebra.site.SiteService",
+	// 			Method:  "getById",
+	// 			Data:    []byte(`{"id": 1}`),
+	// 		},
+	// 	},
+	// 	Assertions: []requests.Assertion{},
+	// }
 
 	// reqx := requests.ReqX{
 	// 	Metadata: requests.Metadata{
@@ -184,16 +210,16 @@ func main() {
 	// 	Assertions: []requests.Assertion{},
 	// }
 
-	requestContext := context.RequestContext{
-		HTTPContext: reqxHttpContext.HTTPRequestContext{
-			Timeout: time.Second * 10,
-		},
-		FileLocation: "./",
-	}
-	err := reqx.Request.Spec.Send(&requestContext)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// requestContext := reqxContext.RequestContext{
+	// 	HTTPContext: reqxHttpContext.HTTPRequestContext{
+	// 		Timeout: time.Second * 10,
+	// 	},
+	// 	FileLocation: "./",
+	// }
+	// err := reqx.Request.Spec.Send(&requestContext)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// SendJSONRequest()
 	// SendGraphQLRequest()
